@@ -14,6 +14,8 @@ import {
   getStatus,
 } from "../modules/customRole";
 
+import { enableWarn, disableWarn, getWarningStatus, clearWarnings, getWarnings } from "../modules/warning";
+
 export default {
   data: new SlashCommandBuilder()
     .setName("manage")
@@ -51,6 +53,32 @@ export default {
             .setName("disable")
             .setDescription("Disable custom roles for the server."),
         ),
+    )
+    .addSubcommandGroup((group) => 
+      group
+        .setName("warnings")
+        .setDescription("Manage warnings")
+        .addSubcommand((sub) => 
+          sub
+            .setName("enable")
+            .setDescription("Enable Warnings for the server")
+        )
+        .addSubcommand((sub) => 
+          sub
+            .setName("disable")
+            .setDescription("Disable warnings for the server")
+        )
+        .addSubcommand((sub) => 
+          sub
+            .setName("clear-warnings")
+            .setDescription("Clear warnings for a user.")
+            .addUserOption((option) => 
+              option
+                .setName("user")
+                .setDescription("User to clear warnings for")
+                .setRequired(true)
+            )
+        )
     ),
 
   async execute(interaction: ChatInputCommandInteraction) {
@@ -58,9 +86,10 @@ export default {
     const group = interaction.options.getSubcommandGroup();
     const sub = interaction.options.getSubcommand();
 
-    const status = getStatus(interaction.guild.id);
+    
 
     if (group === "custom-role") {
+      const status = getStatus(interaction.guild.id);
       if (sub === "enable") {
         if (status)
           return interaction.reply({
@@ -141,6 +170,44 @@ export default {
 
         return interaction.reply({ content: "✅ Custom roles disabled!" });
       }
+    };
+
+    if(group === "warnings") {
+      const status = await getWarningStatus(interaction.guild.id);
+
+      if(sub === "enable") {
+        if(status.enabled) return interaction.reply({content: "❌ Warnings are already enabled for the server!", flags: MessageFlags.Ephemeral});
+
+        enableWarn(interaction.guild.id);
+
+        return interaction.reply({content: "✅ Warnings enabled for the server!"});
+      };
+
+      if(sub === "disable") {
+        if(!status.enabled) return interaction.reply({content: "❌ Warnings were not enabled for this server!", flags: MessageFlags.Ephemeral});
+
+        disableWarn(interaction.guild.id);
+
+        return interaction.reply({content: "✅ Warnings disabled for the server."});
+      };
+
+
+      if(sub === "clear-warnings") {
+        if(!status.enabled) return interaction.reply({content: "❌ Warnings are not enabled on this server.", flags: MessageFlags.Ephemeral});
+
+        const user = interaction.options.getUser("user", true);
+
+        const warnings = await getWarnings(interaction.guild.id, user.id);
+
+        if(warnings.length === 0) {
+          return interaction.reply({content: "❌ This member had no warnings.", flags: MessageFlags.Ephemeral});
+        };
+
+        clearWarnings(interaction.guild.id, user.id);
+
+        return interaction.reply({content: "✅ Cleared warnings for " + user.displayName + "."});
+      }
     }
+
   },
 };
