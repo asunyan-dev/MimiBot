@@ -4,6 +4,10 @@ import {
   InteractionContextType,
   PermissionFlagsBits,
   MessageFlags,
+  EmbedBuilder,
+  ActionRowBuilder,
+  ChannelSelectMenuBuilder,
+  ComponentType
 } from "discord.js";
 
 import {
@@ -15,6 +19,9 @@ import {
 } from "../modules/customRole";
 
 import { enableWarn, disableWarn, getWarningStatus, clearWarnings, getWarnings } from "../modules/warning";
+
+
+import { enableLog, editLog, disableLog, getAll, getLog } from "../modules/logs"
 
 export default {
   data: new SlashCommandBuilder()
@@ -78,6 +85,67 @@ export default {
                 .setDescription("User to clear warnings for")
                 .setRequired(true)
             )
+        )
+    )
+    .addSubcommandGroup((group) => 
+      group
+        .setName("logs")
+        .setDescription("Manage logs in your server.")
+        .addSubcommand((sub) => 
+          sub
+            .setName("enable")
+            .setDescription("Enable a type of log.")
+            .addStringOption((option) => 
+              option
+                .setName("type")
+                .setDescription("Type of logs to enable.")
+                .setRequired(true)
+                .addChoices(
+                  { name: "Member Events", value: "memberEvents" },
+                  { name: "Message Logs", value: "messageLogs" },
+                  { name: "Join / Leave", value: "joinLeave" },
+                  { name: "Voice Logs", value: "voiceLogs" }
+                )
+            )
+        )
+        .addSubcommand((sub) => 
+          sub
+            .setName("edit")
+            .setDescription("Edit channel for a log")
+            .addStringOption((option) => 
+              option
+                .setName("type")
+                .setDescription("The logs you want to edit channel for")
+                .setRequired(true)
+                .addChoices(
+                  { name: "Member Events", value: "memberEvents" },
+                  { name: "Message Logs", value: "messageLogs" },
+                  { name: "Join / Leave", value: "joinLeave" },
+                  { name: "Voice Logs", value: "voiceLogs" }
+                )
+            )
+        )
+        .addSubcommand((sub) => 
+          sub
+            .setName("disable")
+            .setDescription("Disable a type of logs")
+            .addStringOption((option) => 
+              option
+                .setName("type")
+                .setDescription("Type of log to disable")
+                .setRequired(true)
+                .addChoices(
+                  { name: "Member Events", value: "memberEvents" },
+                  { name: "Message Logs", value: "messageLogs" },
+                  { name: "Join / Leave", value: "joinLeave" },
+                  { name: "Voice Logs", value: "voiceLogs" }
+                )
+            )        
+        )
+        .addSubcommand((sub) => 
+          sub
+            .setName("get-config")
+            .setDescription("Get the logs configuration for this server.")
         )
     ),
 
@@ -206,6 +274,140 @@ export default {
         clearWarnings(interaction.guild.id, user.id);
 
         return interaction.reply({content: "✅ Cleared warnings for " + user.displayName + "."});
+      }
+    };
+
+
+    if(group === "logs") {
+
+
+      if(sub === "enable") {
+        const log = interaction.options.getString("type", true);
+
+        const status = await getLog(interaction.guild.id, log);
+
+        if(status.enabled) return interaction.reply({content: "❌ This type of logs is already enabled!\nℹ️ Want to edit the channel for this type? Type /manage logs edit!", flags: MessageFlags.Ephemeral});
+
+        const embed = new EmbedBuilder()
+          .setTitle("Log Configuration")
+          .setDescription("Please select below the channel to post logs for this type.")
+          .setColor(0xe410d3);
+
+        const row = new ActionRowBuilder().addComponents(
+          new ChannelSelectMenuBuilder()
+            .setCustomId("channel")
+            .setPlaceholder("Select a channel here...")
+            .setRequired(true)
+        ).toJSON();
+
+
+        const reply = await interaction.reply({embeds: [embed], components: [row]});
+
+        const collector = reply.createMessageComponentCollector({
+          componentType: ComponentType.ChannelSelect,
+          time: 60_000
+        });
+
+
+        collector.on("collect", async (i) => {
+          if(i.user.id !== interaction.user.id) return interaction.reply({content: "❌ This menu is not for you!", flags: MessageFlags.Ephemeral});
+
+          if(i.customId === "channel") {
+            const channel = i.channels.first();
+            if(!channel) return;
+
+            enableLog(interaction.guild!.id, log, channel.id);
+
+            const embed2 = new EmbedBuilder()
+              .setTitle("✅ Log Type configured!")
+              .setDescription(`Logs will be sent to <#${channel.id}>.`)
+              .setColor(0xe410d3);
+
+            return i.update({embeds: [embed2], components: []});
+          }
+        });
+
+        collector.on("end", async () => {
+          try {
+            interaction.followUp({components: []})
+          } catch {};
+        });
+      };
+
+
+      if(sub === "edit") {
+        const log = interaction.options.getString("type", true);
+
+        const status = await getLog(interaction.guild.id, log);
+
+        if(!status.enabled) return interaction.reply({content: "❌ This type of logs is not enabled! Please use /manage logs enable to enable it.", flags: MessageFlags.Ephemeral});
+
+        const embed = new EmbedBuilder()
+          .setTitle("Log Editing")
+          .setDescription("Select a channel below to set it as new log channel for this type.")
+          .setColor(0xe410d3);
+
+        const row = new ActionRowBuilder().addComponents(
+          new ChannelSelectMenuBuilder()
+            .setCustomId("channel")
+            .setPlaceholder("Select a channel...")
+            .setRequired(true)
+        ).toJSON();
+
+        const reply = await interaction.reply({embeds: [embed], components: [row]});
+
+        const collector = reply.createMessageComponentCollector({
+          componentType: ComponentType.ChannelSelect,
+          time: 60_000
+        });
+
+        collector.on("collect", async (i) => {
+          if(i.user.id !== interaction.user.id) return interaction.reply({content: "❌ This menu is not for you!", flags: MessageFlags.Ephemeral});
+
+          const channel = i.channels.first();
+          if(!channel) return;
+
+          editLog(interaction.guild!.id, log, channel.id);
+
+          const embed2 = new EmbedBuilder()
+            .setTitle("✅ Log edited!")
+            .setDescription(`Logs will now be sent to <#${channel.id}>.`)
+            .setColor(0xe410d3);
+
+          return i.update({embeds: [embed2], components: []});
+        });
+
+        collector.on("end", async () => {
+          try {
+            interaction.followUp({components: []});
+          } catch {};
+        });
+      };
+
+
+      if(sub === "disable") {
+        const log = interaction.options.getString("type", true);
+
+        const status = await getLog(interaction.guild.id, log);
+        if(!status.enabled) return interaction.reply({content: "❌ This type of logs is not enabled, no need to use this command!", flags: MessageFlags.Ephemeral});
+
+        disableLog(interaction.guild.id, log);
+
+        return interaction.reply({content: "✅ Logs disabled for this type."});
+      };
+
+
+      if(sub === "get-config") {
+        const all = await getAll(interaction.guild.id);
+
+        const embed = new EmbedBuilder()
+          .setTitle(`Logs Config for ${interaction.guild.name}`)
+          .setThumbnail(interaction.guild.iconURL({size: 512}))
+          .setColor(0xe410d3)
+          .setDescription(`**Member Events:**\nEnabled: ${all.memberEvents.enabled ? "✅" : "❌"}\nChannel: ${all.memberEvents.channelId ? `<#${all.memberEvents.channelId}>` : "N/A"}\n\n**Message Logs:**\nEnabled: ${all.messageLogs.enabled ? "✅" : "❌"}\nChannel: ${all.messageLogs.channelId ? `<#${all.messageLogs.channelId}>` : "N/A"}\n\n**Join / Leave:**\nEnabled: ${all.joinLeave.enabled ? "✅" : "❌"}\nChannel: ${all.joinLeave.channelId ? `<#${all.joinLeave.channelId}>` : "N/A"}\n\n**Voice Logs:**\nEnabled: ${all.voiceLogs.enabled ? "✅" : "❌"}\nChannel: ${all.voiceLogs.channelId ? `<#${all.voiceLogs.channelId}>` : "N/A"}`)
+          .setTimestamp();
+
+        return interaction.reply({embeds: [embed]});
       }
     }
 
