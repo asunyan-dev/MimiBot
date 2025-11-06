@@ -3,6 +3,8 @@ import { Client, Collection, SlashCommandBuilder, Interaction, MessageFlags, Cha
 
 import { getWarnings } from "../modules/warning";
 
+import { addChange } from "../modules/botLogs";
+
 type Command = {
     data: SlashCommandBuilder;
     execute: (interaction: ChatInputCommandInteraction) => Promise<void>;
@@ -77,6 +79,17 @@ export default {
                     .setTimestamp();
 
                 return interaction.reply({embeds: [embed]});
+            };
+
+
+            if(interaction.customId === "changelog") {
+                const version = interaction.fields.getTextInputValue("version");
+                const details = interaction.fields.getTextInputValue("details");
+
+                addChange(version, details);
+
+                return interaction.reply({content: "Done.", flags: MessageFlags.Ephemeral});
+
             }
         }
     }
