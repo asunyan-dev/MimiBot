@@ -25,5 +25,31 @@ export default {
                 if(afkStatus) message.reply(`🐈 Meow~ ${user.username} is AFK: ${afkStatus}`)
             });
         };
+
+
+        if(!message.reference) return;
+
+
+        if(message.content.toLowerCase() === "mimi emoji") {
+            const fetched = await message.channel.messages.fetch(message.reference.messageId!)
+            if(!fetched) return;
+
+            const customEmojiRegex = /<a?;\w+:\d+>/g;
+
+            const found = fetched.content.match(customEmojiRegex);
+
+            if(found) {
+                found.forEach(e => {
+                    const parsed = e.match(/<(a?):(\w+):(\d)>/);
+                    const animated = parsed![1] === "a";
+                    const name = parsed![2];
+                    const id = parsed![3];
+
+                    return message.reply({content: `Emoji name: \`${name}\`\nEmoji ID: \`${id}\`\nhttps://cdn.discordapp.com/emojis/${id}.${animated ? "gif" : "png"}`});
+                });
+            } else {
+                return message.reply({content: "❌ No emoji found."})
+            }
+        }
     }
 }

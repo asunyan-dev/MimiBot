@@ -10,6 +10,15 @@ export default {
 
         console.log(`🐈 Meow! I am online as ${client.user!.tag}~!`);
 
+        const guilds = client.guilds.cache;
+
+        guilds.forEach((guild) => {
+            guild.fetch();
+            guild.members.fetch();
+        })
+
+        
+
         client.user!.setPresence({
             activities: [
                 {
