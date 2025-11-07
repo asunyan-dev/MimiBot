@@ -23,6 +23,9 @@ import { enableWarn, disableWarn, getWarningStatus, clearWarnings, getWarnings }
 
 import { enableLog, editLog, disableLog, getAll, getLog } from "../modules/logs"
 
+
+import { ignoreChannel, unignoreChannel, ignoreUser, unignoreUser, getAllChannels, getAllUsers, getChannel, getUser } from "../modules/logIgnore"
+
 export default {
   data: new SlashCommandBuilder()
     .setName("manage")
@@ -146,6 +149,38 @@ export default {
           sub
             .setName("get-config")
             .setDescription("Get the logs configuration for this server.")
+        )
+    )
+    .addSubcommandGroup((group) => 
+      group
+        .setName("log-ignore")
+        .setDescription("Ignore / Unignore logs for a user or a channel")
+        .addSubcommand((sub) => 
+          sub
+            .setName("user")
+            .setDescription("Ignore/Unignore logs for a user")
+            .addUserOption((option) => 
+              option
+                .setName("user")
+                .setDescription("User to ignore/unignore")
+                .setRequired(true)
+            )
+        )
+        .addSubcommand((sub) => 
+          sub
+            .setName("channel")
+            .setDescription("Ignore/Unignore logs for a channel")
+            .addChannelOption((option) => 
+              option
+                .setName("channel")
+                .setDescription("Channel to ignore/unignore")
+                .setRequired(true)
+            )
+        )
+        .addSubcommand((sub) => 
+          sub
+            .setName("get")
+            .setDescription("Get list of ignored channels/users")
         )
     ),
 
@@ -409,6 +444,63 @@ export default {
 
         return interaction.reply({embeds: [embed]});
       }
+    };
+
+
+    if(group === "log-ignore") {
+
+      if(sub === "user") {
+        const user = interaction.options.getUser("user", true);
+
+        const status = await getUser(interaction.guild.id, user.id);
+
+        if(!status) {
+          ignoreUser(interaction.guild.id, user.id);
+          return interaction.reply({content: "✅ User ignored."});
+        } else {
+          unignoreUser(interaction.guild.id, user.id);
+          return interaction.reply({content: "✅ User unignored."});
+        }
+      };
+
+      if(sub === "channel") {
+        const channel = interaction.options.getChannel("channel", true);
+
+        const status = getChannel(interaction.guild.id, channel.id);
+
+        if(!status) {
+          ignoreChannel(interaction.guild.id, channel.id);
+          return interaction.reply({content: "✅ Channel ignored."});
+        } else {
+          unignoreChannel(interaction.guild.id, channel.id);
+          return interaction.reply({content: "✅ Channel unignored."});
+        };
+      };
+
+      if(sub === "get") {
+        const allUsers = await getAllUsers(interaction.guild.id);
+        const allChannels = await getAllChannels(interaction.guild.id);
+
+        const users = Object.keys(allUsers);
+        const channels = Object.keys(allChannels);
+
+        const userEmbed = new EmbedBuilder()
+          .setTitle("Ignored Users")
+          .setColor(0xe410d3)
+          .setDescription(`- ${users.map(user => `<@${user}>`).join("\n- ")}`)
+          .setTimestamp();
+
+        const channelEmbed = new EmbedBuilder()
+          .setTitle("Ignored Channels")
+          .setColor(0xe410d3)
+          .setDescription(`- ${channels.map(channel => `<#${channel}>`).join("\n- ")}`)
+          .setTimestamp();
+
+
+        return interaction.reply({embeds: [userEmbed, channelEmbed]});
+
+      }
+
     }
 
   },

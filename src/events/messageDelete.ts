@@ -4,6 +4,8 @@ import { getLog } from "../modules/logs";
 
 import sendMessage from "../modules/sendMessage";
 
+import { getUser, getChannel } from "../modules/logIgnore";
+
 
 export default {
     name: Events.MessageDelete,
@@ -28,6 +30,12 @@ export default {
 
         const channelId = status.channelId!
 
+
+        const userStatus = await getUser(guildId, message.author.id);
+        const channelStatus = await getChannel(guildId, message.channel.id);
+
+        if(userStatus || channelStatus) return;
+
         let description = []
 
         if(message.content) description.push(`**Content:**\n${message.content.substring(0, 400)}`);
@@ -42,7 +50,7 @@ export default {
             .setTitle("Message deleted")
             .setThumbnail(message.author.displayAvatarURL({size: 512}))
             .setColor(0xe410d3)
-            .setDescription(description.length ? description.join("\n\n") : "No content found.")
+            .setDescription(`**Channel:** <#${message.channel.id}>\n\n` + description.length ? description.join("\n\n") : "No content found.")
             .setFooter({text: `User ID: ${message.author.id}`})
             .setTimestamp();
 

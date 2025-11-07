@@ -4,6 +4,8 @@ import { getLog } from "../modules/logs";
 
 import sendMessage from "../modules/sendMessage";
 
+import { getUser } from "../modules/logIgnore"
+
 export default {
     name: Events.GuildMemberUpdate,
 
@@ -15,6 +17,9 @@ export default {
         const channelId = status.channelId!
 
         if(newMember.user.bot) return;
+
+        const userStatus = await getUser(guildId, newMember.id);
+        if(userStatus) return;
 
         const oldRoles = new Set(oldMember.roles.cache.keys());
         const newRoles = new Set(newMember.roles.cache.keys());

@@ -5,6 +5,9 @@ import { getLog } from "../modules/logs"
 import sendMessage from "../modules/sendMessage"
 
 
+import { getUser, getChannel } from "../modules/logIgnore";
+
+
 export default {
     name: Events.MessageUpdate,
 
@@ -20,14 +23,19 @@ export default {
 
         const channelId = status.channelId!
 
+        const userStatus = await getUser(guildId, newMessage.author.id);
+        const channelStatus = await getChannel(guildId, newMessage.channel.id);
+
+        if(userStatus || channelStatus) return;
+
         if(oldMessage.content !== newMessage.content) {
             
 
             const embed = new EmbedBuilder()
-                .setTitle("Message edited")
+                .setTitle(`Message Edited`)
                 .setThumbnail(newMessage.author.displayAvatarURL({size: 512}))
                 .setColor(0xe410d3)
-                .setDescription(`**Before:**\n${oldMessage.content.substring(0, 400)}\n\n**After:**${newMessage.content.substring(0, 400)}`)
+                .setDescription(`**Channel:** <#${newMessage.channel.id}>\n\n**Before:**\n${oldMessage.content.substring(0, 400)}\n\n**After:**${newMessage.content.substring(0, 400)}`)
                 .setFooter({text: `User ID: ${newMessage.author.id}`})
                 .setTimestamp();
 
