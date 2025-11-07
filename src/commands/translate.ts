@@ -1,5 +1,25 @@
 import { ChatInputCommandInteraction, SlashCommandBuilder, EmbedBuilder, MessageFlags } from "discord.js";
-const languages = require('../data/languages.json');
+const languages = [
+    { "name": "English", "code": "en" },
+    { "name": "Spanish", "code": "es" },
+    { "name": "French", "code": "fr" },
+    { "name": "German", "code": "de" },
+    { "name": "Italian", "code": "it" },
+    { "name": "Portuguese", "code": "pt" },
+    { "name": "Russian", "code": "ru" },
+    { "name": "Japanese", "code": "ja" },
+    { "name": "Korean", "code": "ko" },
+    { "name": "Chinese (Simplified)", "code": "zh-cn" },
+    { "name": "Chinese (Traditional)", "code": "zh-tw" },
+    { "name": "Arabic", "code": "ar" },
+    { "name": "Hindi", "code": "hi" },
+    { "name": "Turkish", "code": "tr" },
+    { "name": "Dutch", "code": "nl" },
+    { "name": "Greek", "code": "el" },
+    { "name": "Swedish", "code": "sv" },
+    { "name": "Polish", "code": "pl" },
+    { "name": "Filipino", "code": "tl" }
+]
 
 export default {
     data: new SlashCommandBuilder()

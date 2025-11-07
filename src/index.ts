@@ -47,7 +47,7 @@ for (const file of commandFiles) {
 const eventsPath = path.join(__dirname, "events");
 const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith(".js"));
 
-for (const file in eventFiles) {
+for (const file of eventFiles) {
     const event = require(path.join(eventsPath, file)).default;
 
     if(event.once) {
