@@ -5,6 +5,8 @@ import { getWarnings } from "../modules/warning";
 
 import { addChange } from "../modules/botLogs";
 
+import { getSuggest } from "../modules/suggestions";
+
 type Command = {
     data: SlashCommandBuilder;
     execute: (interaction: ChatInputCommandInteraction) => Promise<void>;
@@ -90,6 +92,37 @@ export default {
 
                 return interaction.reply({content: "Done.", flags: MessageFlags.Ephemeral});
 
+            };
+
+
+            if(interaction.customId === "suggestion") {
+                if(!interaction.guild) return;
+                
+
+                const text = interaction.fields.getTextInputValue("text");
+
+                const status = await getSuggest(interaction.guild.id);
+
+                const channel = await interaction.guild.channels.fetch(status.channelId!).catch(() => null);
+
+                if(!channel) return interaction.reply({content: "❌ Couldn't find suggestion channel.", flags: MessageFlags.Ephemeral});
+
+                const embed = new EmbedBuilder()
+                    .setTitle("New suggestion")
+                    .setAuthor({name: interaction.user.displayName, iconURL: interaction.user.displayAvatarURL({size: 128})})
+                    .setColor(0xe410d3)
+                    .setDescription(text)
+                    .setTimestamp();
+
+                if(channel.isDMBased() || !channel.isSendable()) {
+                    return interaction.reply({content: "❌ Couldn't send suggestion.", flags: MessageFlags.Ephemeral});
+                };
+
+                const reply = await channel.send({embeds: [embed]});
+                await reply.react("⬆️");
+                await reply.react("⬇️");
+
+                return interaction.reply({content: "✅ Suggestion sent!"});
             }
         }
     }

@@ -26,6 +26,8 @@ import { enableLog, editLog, disableLog, getAll, getLog } from "../modules/logs"
 
 import { ignoreChannel, unignoreChannel, ignoreUser, unignoreUser, getAllChannels, getAllUsers, getChannel, getUser } from "../modules/logIgnore"
 
+import { enableSuggestions, editChannel, getSuggest, disableSuggestions } from "../modules/suggestions";
+
 export default {
   data: new SlashCommandBuilder()
     .setName("manage")
@@ -181,6 +183,43 @@ export default {
           sub
             .setName("get")
             .setDescription("Get list of ignored channels/users")
+        )
+    )
+    .addSubcommandGroup((group) => 
+      group
+        .setName("suggestions")
+        .setDescription("Manage suggestions")
+        .addSubcommand((sub) => 
+          sub
+            .setName("enable")
+            .setDescription("Enable suggestions for the server.")
+            .addChannelOption((option) => 
+              option
+                .setName("channel")
+                .setDescription("Channel where suggestions will be sent")
+                .setRequired(true)
+            )
+        )
+        .addSubcommand((sub) => 
+          sub
+            .setName("edit")
+            .setDescription("Edit channel for suggestions")
+            .addChannelOption((option) => 
+              option
+                .setName("channel")
+                .setDescription("New channel for suggestions")
+                .setRequired(true)
+            )
+        )
+        .addSubcommand((sub) => 
+          sub
+            .setName("disable")
+            .setDescription("Disable suggestions")
+        )
+        .addSubcommand((sub) => 
+          sub
+            .setName("get")
+            .setDescription("Get current config for suggestions")
         )
     ),
 
@@ -499,6 +538,50 @@ export default {
 
         return interaction.reply({embeds: [userEmbed, channelEmbed]});
 
+      }
+
+    };
+
+
+    if(group === "suggestions") {
+
+      if(sub === "enable") {
+        const status = await getSuggest(interaction.guild.id);
+        if(status.enabled) return interaction.reply({content: "❌ Suggestions are already enabled.", flags: MessageFlags.Ephemeral});
+
+        const channel = interaction.options.getChannel("channel", true);
+
+        enableSuggestions(interaction.guild.id, channel.id);
+
+        return interaction.reply({content: "✅ Suggestions enabled!"});
+      };
+
+      if(sub === "edit") {
+        const status = await getSuggest(interaction.guild.id);
+        if(!status.enabled) return interaction.reply({content: "❌ Suggestions are disabled.", flags: MessageFlags.Ephemeral});
+
+        const channel = interaction.options.getChannel("channel", true);
+
+        editChannel(interaction.guild.id, channel.id);
+
+        return interaction.reply({content: "✅ Suggestion channel edited!"});
+      };
+
+      if(sub === "disable") {
+        const status = await getSuggest(interaction.guild.id);
+        if(!status.enabled) {
+          return interaction.reply({content: "❌ Suggestions are already disabled.", flags: MessageFlags.Ephemeral});
+        };
+
+        disableSuggestions(interaction.guild.id);
+
+        return interaction.reply("✅ Suggestions disabled.")
+      };
+
+      if(sub === "get") {
+        const status = await getSuggest(interaction.guild.id);
+
+        return interaction.reply(`**Status:** ${status.enabled ? "`Enabled`" : "`Disabled`"}\n\n**Suggestion channel:** ${status.channelId ? `<#${status.channelId}>` : "N/A"}`);
       }
 
     }
