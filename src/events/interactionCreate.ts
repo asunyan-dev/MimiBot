@@ -123,6 +123,19 @@ export default {
                 await reply.react("⬇️");
 
                 return interaction.reply({content: "✅ Suggestion sent!"});
+            };
+
+
+            if(interaction.customId === "request") {
+                const name = interaction.fields.getTextInputValue("name");
+                const text = interaction.fields.getTextInputValue("text");
+
+                const owner = await client.users.fetch(process.env.OWNER_ID!).catch(() => null);
+                if(!owner) return interaction.reply({content: "❌ There was an error, please try again later.", flags: MessageFlags.Ephemeral});
+
+                await owner.send(`New request from ${name}:\n\n${text}`);
+
+                return interaction.reply({content: "✅ Request sent.", flags: MessageFlags.Ephemeral});
             }
         }
     }
