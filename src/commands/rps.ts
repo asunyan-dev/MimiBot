@@ -70,7 +70,7 @@ export default {
 
         collector.on("end", async () => {
             try {
-                interaction.followUp({components: []});
+                interaction.editReply({components: []});
             } catch {};
         })
     }
